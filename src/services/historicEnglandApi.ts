@@ -10,6 +10,7 @@ proj4.defs('EPSG:4326', wgs84);
 
 export interface NHLERecord {
   attributes: {
+    OBJECTID?: number;
     ListEntry?: number;
     Name?: string;
     Grade?: string;
@@ -29,9 +30,12 @@ export interface NHLERecord {
     PeriodFrom?: string;
     PeriodTo?: string;
     CuratedDescription?: string;
-    OBJECTID?: number;
     POINT_X?: number;
     POINT_Y?: number;
+    X?: number;
+    Y?: number;
+    SHAPE_X?: number;
+    SHAPE_Y?: number;
   };
   geometry?: {
     x: number;
@@ -47,12 +51,14 @@ export interface PostcodeGeocoding {
 
 export class HistoricEnglandService {
   private readonly postcodeApiUrl = 'https://api.postcodes.io/postcodes';
+  private readonly nhleServiceUrl = 'https://services-eu1.arcgis.com/ZOdPfBS3aqqDYPUQ/arcgis/rest/services/National_Heritage_List_for_England_NHLE_v02_VIEW/FeatureServer/6';
 
   /**
    * Geocode a UK postcode to WGS84 coordinates
    */
   async geocodePostcode(postcode: string): Promise<PostcodeGeocoding> {
     try {
+      console.log(`Geocoding postcode: ${postcode}`);
       const response = await fetch(`${this.postcodeApiUrl}/${encodeURIComponent(postcode)}`);
       
       if (!response.ok) {
@@ -60,6 +66,7 @@ export class HistoricEnglandService {
       }
 
       const data = await response.json();
+      console.log('Geocoding result:', data.result);
       
       return {
         lat: data.result.latitude,
@@ -103,13 +110,17 @@ export class HistoricEnglandService {
   }
 
   /**
-   * Query a single ArcGIS service endpoint
+   * Query Historic England NHLE dataset for heritage assets within buffer
    */
-  private async queryArcGISService(serviceUrl: string, centroidLat: number, centroidLng: number, bufferKm: number): Promise<NHLERecord[]> {
+  async queryHeritageAssets(centroidLat: number, centroidLng: number, bufferKm: number = 20): Promise<NHLERecord[]> {
     try {
+      console.log(`Querying NHLE for coordinates: ${centroidLat}, ${centroidLng} with ${bufferKm}km buffer`);
+
       // Convert centroid to BNG for spatial query
       const { easting, northing } = this.wgs84ToBng(centroidLat, centroidLng);
       const bufferMeters = bufferKm * 1000;
+
+      console.log(`Converted to BNG: ${easting}, ${northing} with ${bufferMeters}m buffer`);
 
       // Create envelope geometry for spatial query
       const envelope = {
@@ -133,9 +144,10 @@ export class HistoricEnglandService {
         resultOffset: '0'
       });
 
-      console.log(`Querying: ${serviceUrl}?${params.toString()}`);
+      const queryUrl = `${this.nhleServiceUrl}/query?${params.toString()}`;
+      console.log(`Querying NHLE API: ${queryUrl}`);
 
-      const response = await fetch(`${serviceUrl}?${params.toString()}`, {
+      const response = await fetch(queryUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -143,83 +155,47 @@ export class HistoricEnglandService {
       });
 
       if (!response.ok) {
-        console.warn(`Service ${serviceUrl} returned ${response.status}: ${response.statusText}`);
-        return [];
+        console.error(`NHLE API returned ${response.status}: ${response.statusText}`);
+        throw new Error(`NHLE API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log(`Service response:`, data);
+      console.log('NHLE API response:', data);
 
       if (data.error) {
-        console.warn(`Service error:`, data.error);
-        return [];
+        console.error('NHLE API error:', data.error);
+        throw new Error(`NHLE API error: ${data.error.message || 'Unknown error'}`);
       }
 
       if (!data.features || !Array.isArray(data.features)) {
-        console.warn(`No features found in response from ${serviceUrl}`);
+        console.warn('No features found in NHLE response');
         return [];
       }
 
-      console.log(`Found ${data.features.length} features from ${serviceUrl}`);
-      return data.features;
-
-    } catch (error) {
-      console.warn(`Error querying ${serviceUrl}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Query Historic England NHLE dataset for heritage assets within buffer
-   */
-  async queryHeritageAssets(centroidLat: number, centroidLng: number, bufferKm: number = 20): Promise<NHLERecord[]> {
-    try {
-      console.log(`Querying heritage assets for coordinates: ${centroidLat}, ${centroidLng} with ${bufferKm}km buffer`);
-
-      // Historic England ArcGIS service endpoints
-      const serviceEndpoints = [
-        // Listed Buildings
-        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Listed_Buildings/FeatureServer/0/query',
-        // Scheduled Monuments  
-        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Scheduled_Monuments/FeatureServer/0/query',
-        // Registered Parks and Gardens
-        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Registered_Parks_and_Gardens/FeatureServer/0/query',
-        // Protected Wrecks
-        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Protected_Wrecks/FeatureServer/0/query',
-        // Registered Battlefields
-        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Registered_Battlefields/FeatureServer/0/query'
-      ];
-
-      const allRecords: NHLERecord[] = [];
-
-      // Query each service endpoint
-      for (const endpoint of serviceEndpoints) {
-        try {
-          const records = await this.queryArcGISService(endpoint, centroidLat, centroidLng, bufferKm);
-          allRecords.push(...records);
-        } catch (error) {
-          console.warn(`Failed to query endpoint ${endpoint}:`, error);
-          // Continue with other endpoints
-        }
-      }
-
-      console.log(`Total records retrieved: ${allRecords.length}`);
+      console.log(`Found ${data.features.length} features from NHLE API`);
 
       // Filter records within actual circular buffer and add distance
-      const filteredRecords = allRecords.filter(record => {
+      const filteredRecords = data.features.filter((record: NHLERecord) => {
         // Try different geometry field names
         const geometry = record.geometry;
+        const attrs = record.attributes;
         let x, y;
 
         if (geometry && geometry.x && geometry.y) {
           x = geometry.x;
           y = geometry.y;
-        } else if (record.attributes.POINT_X && record.attributes.POINT_Y) {
-          x = record.attributes.POINT_X;
-          y = record.attributes.POINT_Y;
-        } else if (record.attributes.Easting && record.attributes.Northing) {
-          x = record.attributes.Easting;
-          y = record.attributes.Northing;
+        } else if (attrs.POINT_X && attrs.POINT_Y) {
+          x = attrs.POINT_X;
+          y = attrs.POINT_Y;
+        } else if (attrs.X && attrs.Y) {
+          x = attrs.X;
+          y = attrs.Y;
+        } else if (attrs.SHAPE_X && attrs.SHAPE_Y) {
+          x = attrs.SHAPE_X;
+          y = attrs.SHAPE_Y;
+        } else if (attrs.Easting && attrs.Northing) {
+          x = attrs.Easting;
+          y = attrs.Northing;
         } else {
           console.warn('No valid coordinates found for record:', record);
           return false;
@@ -245,8 +221,8 @@ export class HistoricEnglandService {
       return filteredRecords;
 
     } catch (error) {
-      console.error('Error querying heritage assets:', error);
-      throw new Error('Failed to retrieve heritage assets from Historic England');
+      console.error('Error querying NHLE heritage assets:', error);
+      throw new Error(`Failed to retrieve heritage assets from Historic England: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -259,7 +235,7 @@ export class HistoricEnglandService {
       const distance = (record as any).calculatedDistance || 0;
       const coords = (record as any).wgs84Coordinates || { lat: 0, lng: 0 };
 
-      // Determine site type based on heritage category or service
+      // Determine site type based on heritage category or grade
       let type = 'archaeological_site';
       const category = attrs.HeritageCategory?.toLowerCase() || '';
       
