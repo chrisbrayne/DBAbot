@@ -76,10 +76,10 @@ export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading,
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Querying Historic England NHLE API...
+                Querying Historic England NHLE Database...
               </span>
             ) : (
-              'Query Historic England Database'
+              'Search NHLE Heritage Assets'
             )}
           </button>
         </form>
@@ -88,11 +88,11 @@ export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading,
           <h3 className="text-sm font-medium text-amber-800 mb-2">Assessment Scope</h3>
           <ul className="text-sm text-amber-700 space-y-1">
             <li>• 20km study area around postcode centroid</li>
-            <li>• Live Historic England NHLE API data</li>
+            <li>• Official Historic England NHLE database</li>
             <li>• Listed Buildings, Scheduled Monuments</li>
             <li>• Registered Parks & Gardens, Protected Wrecks</li>
             <li>• Registered Battlefields</li>
-            <li>• Real-time data updated daily by Historic England</li>
+            <li>• Data updated daily by Historic England</li>
           </ul>
         </div>
       </div>
