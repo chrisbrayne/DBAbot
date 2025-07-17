@@ -9,31 +9,47 @@ import { ImpactEvaluation } from './components/ImpactEvaluation';
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
 import { ArchaeologicalSite } from './types/archaeological';
-import { generateMockData } from './utils/mockData';
+import { historicEnglandService } from './services/historicEnglandApi';
 
 function App() {
   const [currentPostcode, setCurrentPostcode] = useState<string>('');
   const [centroidCoords, setCentroidCoords] = useState<[number, number] | null>(null);
   const [archaeologicalSites, setArchaeologicalSites] = useState<ArchaeologicalSite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'map' | 'table' | 'context' | 'sensitivity' | 'impact' | 'report'>('map');
 
   const handlePostcodeSubmit = async (postcode: string) => {
     setIsLoading(true);
+    setError('');
     setCurrentPostcode(postcode);
     
     try {
-      // Mock geocoding - in production, this would use a real geocoding service
-      const mockCoords: [number, number] = [51.1789, -1.8262]; // Stonehenge area as example
-      setCentroidCoords(mockCoords);
+      // Geocode the postcode using postcodes.io API
+      const geocodingResult = await historicEnglandService.geocodePostcode(postcode);
+      const coords: [number, number] = [geocodingResult.lat, geocodingResult.lng];
+      setCentroidCoords(coords);
       
-      // Generate mock archaeological data
-      const sites = generateMockData(mockCoords, postcode);
+      // Query Historic England NHLE dataset
+      const nhleRecords = await historicEnglandService.queryHeritageAssets(
+        geocodingResult.lat, 
+        geocodingResult.lng, 
+        20 // 20km buffer
+      );
+      
+      // Convert to application format
+      const sites = historicEnglandService.convertToArchaeologicalSites(
+        nhleRecords, 
+        geocodingResult.lat, 
+        geocodingResult.lng
+      );
+      
       setArchaeologicalSites(sites);
       
       setActiveTab('map');
     } catch (error) {
       console.error('Error processing postcode:', error);
+      setError(error instanceof Error ? error.message : 'Failed to process postcode');
     } finally {
       setIsLoading(false);
     }
@@ -50,11 +66,11 @@ function App() {
           </h1>
           <p className="text-lg text-stone-600 max-w-3xl mx-auto">
             Generate comprehensive archaeological desk based assessments compliant with CIfA standards. 
-            Enter a postcode to analyze heritage assets within a 20km study area.
+            Enter a postcode to analyze heritage assets within a 20km study area using Historic England's National Heritage List.
           </p>
         </div>
 
-        <PostcodeForm onSubmit={handlePostcodeSubmit} isLoading={isLoading} />
+        <PostcodeForm onSubmit={handlePostcodeSubmit} isLoading={isLoading} error={error} />
 
         {currentPostcode && (
           <div className="mt-8">
@@ -62,6 +78,17 @@ function App() {
               <h2 className="text-2xl font-semibold text-stone-800 mb-4">
                 Assessment for {currentPostcode}
               </h2>
+              
+              {archaeologicalSites.length > 0 && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-800 text-sm">
+                    <strong>Data Source:</strong> Historic England National Heritage List for England (NHLE) - 
+                    {archaeologicalSites.length} heritage assets found within 20km study area.
+                    Data includes Listed Buildings, Scheduled Monuments, Registered Parks & Gardens, Protected Wrecks, and Registered Battlefields.
+                  </p>
+                </div>
+              )}
+              
               <div className="flex flex-wrap gap-2 mb-6">
                 <button
                   onClick={() => setActiveTab('map')}

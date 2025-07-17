@@ -36,8 +36,11 @@ export const MapView: React.FC<MapViewProps> = ({ centroid, sites }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold text-stone-800">Heritage Assets Map</h3>
-        <div className="text-sm text-stone-600">
-          Study Area: 20km radius from {centroid[0].toFixed(4)}, {centroid[1].toFixed(4)}
+        <div className="text-sm text-stone-600 flex items-center gap-4">
+          <span>Study Area: 20km radius from {centroid[0].toFixed(4)}, {centroid[1].toFixed(4)}</span>
+          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+            Historic England NHLE Data
+          </span>
         </div>
       </div>
 
@@ -108,6 +111,7 @@ export const MapView: React.FC<MapViewProps> = ({ centroid, sites }) => {
         <div className="bg-stone-50 p-4 rounded-lg">
           <h4 className="font-medium text-stone-800 mb-2">Total Heritage Assets</h4>
           <div className="text-2xl font-bold text-amber-600">{sites.length}</div>
+          <div className="text-xs text-stone-500 mt-1">NHLE Records</div>
         </div>
         <div className="bg-stone-50 p-4 rounded-lg">
           <h4 className="font-medium text-stone-800 mb-2">Scheduled Monuments</h4>

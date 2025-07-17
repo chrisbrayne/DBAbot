@@ -17,10 +17,10 @@ export const Footer: React.FC = () => {
             <p className="text-stone-300 mb-4 max-w-md">
               Professional archaeological desk based assessment tool compliant with CIfA Standards 
               and Local Planning Authority requirements. Supporting heritage professionals in 
-              development planning and archaeological evaluation.
+              development planning and archaeological evaluation using Historic England's National Heritage List.
             </p>
             <p className="text-xs text-stone-400">
-              Built with data from the National Monuments Record and Historic Environment Records
+              Built with data from Historic England's National Heritage List for England (NHLE) and local Historic Environment Records
             </p>
           </div>
           
@@ -58,25 +58,31 @@ export const Footer: React.FC = () => {
             <h4 className="font-semibold mb-4">Data Sources</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
-                  HBSMR Gateway
+                <a href="https://historicengland.org.uk/listing/the-list/" target="_blank" rel="noopener noreferrer" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
+                  Historic England NHLE
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </li>
               <li>
-                <a href="#" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
+                <a href="https://www.heritagegateway.org.uk/" target="_blank" rel="noopener noreferrer" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
                   Heritage Gateway
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </li>
               <li>
-                <a href="#" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
+                <a href="https://www.pastscape.org.uk/" target="_blank" rel="noopener noreferrer" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
                   PastScape
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </li>
               <li>
-                <a href="#" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
+                <a href="https://opendata-historicengland.hub.arcgis.com/" target="_blank" rel="noopener noreferrer" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
+                  HE Open Data Hub
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </li>
+              <li>
+                <a href="https://www.archaeologists.net/work/standards" target="_blank" rel="noopener noreferrer" className="text-stone-300 hover:text-amber-400 transition-colors flex items-center gap-1">
                   Local HERs
                   <ExternalLink className="h-3 w-3" />
                 </a>
@@ -88,7 +94,8 @@ export const Footer: React.FC = () => {
         <div className="border-t border-stone-700 mt-8 pt-8 text-center text-xs text-stone-400">
           <p>
             © 2025 Heritage Assessment Tool. This tool is designed to support archaeological professionals 
-            and should be used in conjunction with professional expertise and local authority guidance.
+            and should be used in conjunction with professional expertise, local Historic Environment Records, and local authority guidance.
+            Data sourced from Historic England's National Heritage List for England under Open Government Licence.
           </p>
         </div>
       </div>

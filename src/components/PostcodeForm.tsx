@@ -4,9 +4,10 @@ import { Search, MapPin } from 'lucide-react';
 interface PostcodeFormProps {
   onSubmit: (postcode: string) => void;
   isLoading: boolean;
+  error?: string;
 }
 
-export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading }) => {
+export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading, error: externalError }) => {
   const [postcode, setPostcode] = useState('');
   const [error, setError] = useState('');
 
@@ -62,6 +63,9 @@ export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading 
             {error && (
               <p className="mt-2 text-sm text-red-600">{error}</p>
             )}
+            {externalError && (
+              <p className="mt-2 text-sm text-red-600">{externalError}</p>
+            )}
           </div>
           
           <button
@@ -72,7 +76,7 @@ export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading 
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Processing Assessment...
+                Querying Historic England Database...
               </span>
             ) : (
               'Generate Archaeological Assessment'
@@ -84,9 +88,10 @@ export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading 
           <h3 className="text-sm font-medium text-amber-800 mb-2">Assessment Scope</h3>
           <ul className="text-sm text-amber-700 space-y-1">
             <li>• 20km study area around postcode centroid</li>
-            <li>• Scheduled Monuments and Listed Buildings</li>
-            <li>• Archaeological sites and findspots</li>
-            <li>• Conservation Areas and Registered Parks</li>
+            <li>• Historic England National Heritage List data</li>
+            <li>• Listed Buildings, Scheduled Monuments</li>
+            <li>• Registered Parks & Gardens, Protected Wrecks</li>
+            <li>• Registered Battlefields</li>
             <li>• Compliant with CIfA Standards and Guidance</li>
           </ul>
         </div>

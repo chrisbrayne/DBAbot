@@ -148,7 +148,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sites }) => {
                   </button>
                 </th>
                 <th className="px-4 py-3 text-left">Description</th>
-                <th className="px-4 py-3 text-left">Reference</th>
+                <th className="px-4 py-3 text-left">NHLE Reference</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200">
@@ -183,10 +183,15 @@ export const DataTable: React.FC<DataTableProps> = ({ sites }) => {
                   </td>
                   <td className="px-4 py-3">
                     {site.reference && (
-                      <button className="text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                      <a 
+                        href={(site as any).hyperlink || `https://historicengland.org.uk/listing/the-list/list-entry/${site.reference?.replace('NHLE ', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                      >
                         <span className="text-sm">{site.reference}</span>
                         <ExternalLink className="h-3 w-3" />
-                      </button>
+                      </a>
                     )}
                   </td>
                 </tr>
@@ -197,7 +202,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sites }) => {
       </div>
 
       <div className="text-sm text-stone-600">
-        Showing {sortedSites.length} of {sites.length} heritage assets within the study area
+        Showing {sortedSites.length} of {sites.length} heritage assets from Historic England's National Heritage List within the study area
       </div>
     </div>
   );

@@ -36,9 +36,10 @@ Site Location: ${postcode}
 Report Date: ${date}
 Study Area: 20km radius from postcode centroid
 Coordinates: ${centroid ? `${centroid[0].toFixed(4)}, ${centroid[1].toFixed(4)}` : 'Not available'}
+Data Source: Historic England National Heritage List for England (NHLE)
 
 EXECUTIVE SUMMARY
-This desk based assessment has been conducted in accordance with the Chartered Institute for Archaeologists (CIfA) Standards and Guidance for Archaeological Desk-based Assessment. The study identifies ${sites.length} heritage assets within the 20km study area, including ${scheduledMonuments.length} Scheduled Monuments.
+This desk based assessment has been conducted in accordance with the Chartered Institute for Archaeologists (CIfA) Standards and Guidance for Archaeological Desk-based Assessment. The study identifies ${sites.length} heritage assets from Historic England's National Heritage List for England (NHLE) within the 20km study area, including ${scheduledMonuments.length} Scheduled Monuments.
 
 HERITAGE ASSETS SUMMARY
 - Total Heritage Assets: ${sites.length}
@@ -69,13 +70,14 @@ ${directImpacts.length > 0 ?
 RECOMMENDATIONS
 1. Pre-application consultation with the local planning authority heritage team
 2. ${scheduledMonuments.some(s => s.distance <= 1) ? 'Scheduled Monument Consent required for any works affecting scheduled monuments' : 'Consider potential for previously unrecorded archaeological remains'}
-3. Archaeological evaluation may be required to inform planning decisions
-4. Development should follow best practice guidance for archaeological investigation
-5. Settings assessment recommended for nationally significant heritage assets
+3. Consultation with local Historic Environment Record (HER) for additional non-designated assets
+4. Archaeological evaluation may be required to inform planning decisions
+5. Development should follow best practice guidance for archaeological investigation
+6. Settings assessment recommended for nationally significant heritage assets
 
-This assessment should be reviewed in conjunction with the latest local development plan policies and Historic England guidance.
+This assessment should be reviewed in conjunction with the latest local development plan policies, Historic England guidance, and local Historic Environment Record data.
 
-Report prepared in accordance with CIfA Standards and Guidance for Archaeological Desk-based Assessment.
+Report prepared in accordance with CIfA Standards and Guidance for Archaeological Desk-based Assessment using Historic England NHLE data.
     `.trim();
   };
 
@@ -118,6 +120,9 @@ Report prepared in accordance with CIfA Standards and Guidance for Archaeologica
               </div>
               <div>
                 <strong>Standards:</strong> CIfA Standards and Guidance for DBA
+              </div>
+              <div>
+                <strong>Data Source:</strong> Historic England NHLE (updated daily)
               </div>
             </div>
           </div>
@@ -249,8 +254,10 @@ Report prepared in accordance with CIfA Standards and Guidance for Archaeologica
             <li>• Complete heritage assets gazetteer with coordinates</li>
             <li>• Chronological and geographical context analysis</li>
             <li>• Impact assessment and sensitivity mapping</li>
+            <li>• Historic England NHLE data integration</li>
             <li>• Detailed recommendations and mitigation measures</li>
             <li>• Regulatory framework and consultation requirements</li>
+            <li>• Links to Historic England records and local HER guidance</li>
           </ul>
         </div>
       </div>

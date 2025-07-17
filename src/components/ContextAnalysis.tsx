@@ -59,7 +59,7 @@ export const ContextAnalysis: React.FC<ContextAnalysisProps> = ({ sites, postcod
         <div className="prose text-stone-700">
           <p>
             The study area for postcode <strong>{postcode}</strong> encompasses a 20km radius containing{' '}
-            <strong>{geoContext.totalAssets}</strong> recorded heritage assets. This includes{' '}
+            <strong>{geoContext.totalAssets}</strong> heritage assets from Historic England's National Heritage List for England (NHLE). This includes{' '}
             <strong>{geoContext.scheduledCount}</strong> Scheduled Monuments,{' '}
             <strong>{geoContext.listedCount}</strong> Listed Buildings, and{' '}
             <strong>{geoContext.conservationCount}</strong> Conservation Areas.
@@ -142,7 +142,7 @@ export const ContextAnalysis: React.FC<ContextAnalysisProps> = ({ sites, postcod
         <h4 className="text-lg font-medium text-stone-800 mb-4">Archaeological Potential</h4>
         <div className="prose text-stone-700">
           <p>
-            Based on the density and distribution of recorded heritage assets, the study area demonstrates{' '}
+            Based on the density and distribution of heritage assets recorded in Historic England's National Heritage List, the study area demonstrates{' '}
             <strong>
               {sites.length > 20 ? 'high' : sites.length > 10 ? 'moderate to high' : 'moderate'}
             </strong> archaeological potential. The presence of{' '}
@@ -154,8 +154,9 @@ export const ContextAnalysis: React.FC<ContextAnalysisProps> = ({ sites, postcod
           <p>
             Any proposed development within this area should consider the potential for{' '}
             {sites.some(s => s.type === 'findspot') ? 
-              'previously unrecorded archaeological remains and chance finds' :
-              'additional archaeological remains associated with the recorded heritage assets'}.
+              'previously unrecorded archaeological remains beyond those in the NHLE' :
+              'additional archaeological remains associated with the designated heritage assets'}.
+            Further consultation with the local Historic Environment Record (HER) is recommended for comprehensive assessment.
           </p>
         </div>
       </div>
