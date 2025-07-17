@@ -71,15 +71,15 @@ export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading,
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-amber-600 text-white py-3 px-6 rounded-md hover:bg-amber-700 disabled:bg-stone-300 disabled:cursor-not-allowed transition-colors font-medium"
+            className="w-full bg-amber-600 text-white py-3 px-6 rounded-md hover:bg-amber-700 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Querying Historic England Database...
+                Querying Historic England NHLE API...
               </span>
             ) : (
-              'Generate Archaeological Assessment'
+              'Query Historic England Database'
             )}
           </button>
         </form>
@@ -88,11 +88,11 @@ export const PostcodeForm: React.FC<PostcodeFormProps> = ({ onSubmit, isLoading,
           <h3 className="text-sm font-medium text-amber-800 mb-2">Assessment Scope</h3>
           <ul className="text-sm text-amber-700 space-y-1">
             <li>• 20km study area around postcode centroid</li>
-            <li>• Historic England National Heritage List data</li>
+            <li>• Live Historic England NHLE API data</li>
             <li>• Listed Buildings, Scheduled Monuments</li>
             <li>• Registered Parks & Gardens, Protected Wrecks</li>
             <li>• Registered Battlefields</li>
-            <li>• Compliant with CIfA Standards and Guidance</li>
+            <li>• Real-time data updated daily by Historic England</li>
           </ul>
         </div>
       </div>

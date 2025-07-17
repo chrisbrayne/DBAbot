@@ -24,10 +24,14 @@ function App() {
     setError('');
     setCurrentPostcode(postcode);
     
+    console.log(`Processing postcode: ${postcode}`);
+    
     try {
       // Geocode the postcode using postcodes.io API
       const geocodingResult = await historicEnglandService.geocodePostcode(postcode);
       const coords: [number, number] = [geocodingResult.lat, geocodingResult.lng];
+      
+      console.log(`Geocoded coordinates: ${coords[0]}, ${coords[1]}`);
       setCentroidCoords(coords);
       
       // Query Historic England NHLE dataset
@@ -37,12 +41,16 @@ function App() {
         20 // 20km buffer
       );
       
+      console.log(`Retrieved ${nhleRecords.length} NHLE records`);
+      
       // Convert to application format
       const sites = historicEnglandService.convertToArchaeologicalSites(
         nhleRecords, 
         geocodingResult.lat, 
         geocodingResult.lng
       );
+      
+      console.log(`Converted to ${sites.length} archaeological sites`);
       
       setArchaeologicalSites(sites);
       
@@ -82,9 +90,21 @@ function App() {
               {archaeologicalSites.length > 0 && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-green-800 text-sm">
-                    <strong>Data Source:</strong> Historic England National Heritage List for England (NHLE) - 
+                    <strong>Live Data Source:</strong> Historic England National Heritage List for England (NHLE) - 
                     {archaeologicalSites.length} heritage assets found within 20km study area.
                     Data includes Listed Buildings, Scheduled Monuments, Registered Parks & Gardens, Protected Wrecks, and Registered Battlefields.
+                    <br />
+                    <strong>Last Updated:</strong> {new Date().toLocaleDateString('en-GB')} (NHLE data updated daily)
+                  </p>
+                </div>
+              )}
+              
+              {archaeologicalSites.length === 0 && !isLoading && currentPostcode && (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>No Heritage Assets Found:</strong> No NHLE records found within 20km of {currentPostcode}. 
+                    This may indicate a rural area with limited recorded heritage assets, or potential API connectivity issues.
+                    Consider consulting local Historic Environment Records (HER) for additional non-designated assets.
                   </p>
                 </div>
               )}

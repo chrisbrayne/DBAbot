@@ -10,8 +10,8 @@ proj4.defs('EPSG:4326', wgs84);
 
 export interface NHLERecord {
   attributes: {
-    ListEntry: number;
-    Name: string;
+    ListEntry?: number;
+    Name?: string;
     Grade?: string;
     ListDate?: string;
     AmendDate?: string;
@@ -29,6 +29,9 @@ export interface NHLERecord {
     PeriodFrom?: string;
     PeriodTo?: string;
     CuratedDescription?: string;
+    OBJECTID?: number;
+    POINT_X?: number;
+    POINT_Y?: number;
   };
   geometry?: {
     x: number;
@@ -43,7 +46,6 @@ export interface PostcodeGeocoding {
 }
 
 export class HistoricEnglandService {
-  private readonly baseUrl = 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services';
   private readonly postcodeApiUrl = 'https://api.postcodes.io/postcodes';
 
   /**
@@ -101,16 +103,16 @@ export class HistoricEnglandService {
   }
 
   /**
-   * Query Historic England NHLE dataset for heritage assets within buffer
+   * Query a single ArcGIS service endpoint
    */
-  async queryHeritageAssets(centroidLat: number, centroidLng: number, bufferKm: number = 20): Promise<NHLERecord[]> {
+  private async queryArcGISService(serviceUrl: string, centroidLat: number, centroidLng: number, bufferKm: number): Promise<NHLERecord[]> {
     try {
       // Convert centroid to BNG for spatial query
       const { easting, northing } = this.wgs84ToBng(centroidLat, centroidLng);
       const bufferMeters = bufferKm * 1000;
 
-      // Create geometry for spatial query (circle buffer)
-      const geometry = {
+      // Create envelope geometry for spatial query
+      const envelope = {
         xmin: easting - bufferMeters,
         ymin: northing - bufferMeters,
         xmax: easting + bufferMeters,
@@ -123,57 +125,123 @@ export class HistoricEnglandService {
         f: 'json',
         where: '1=1',
         outFields: '*',
-        geometry: JSON.stringify(geometry),
+        geometry: JSON.stringify(envelope),
         geometryType: 'esriGeometryEnvelope',
         spatialRel: 'esriSpatialRelIntersects',
         returnGeometry: 'true',
-        maxRecordCount: '1000'
+        maxRecordCount: '2000',
+        resultOffset: '0'
       });
 
-      // Try multiple NHLE service endpoints
-      const endpoints = [
-        'NHLE_Listed_Buildings/FeatureServer/0/query',
-        'NHLE_Scheduled_Monuments/FeatureServer/0/query',
-        'NHLE_Registered_Parks_and_Gardens/FeatureServer/0/query',
-        'NHLE_Protected_Wrecks/FeatureServer/0/query',
-        'NHLE_Registered_Battlefields/FeatureServer/0/query'
+      console.log(`Querying: ${serviceUrl}?${params.toString()}`);
+
+      const response = await fetch(`${serviceUrl}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`Service ${serviceUrl} returned ${response.status}: ${response.statusText}`);
+        return [];
+      }
+
+      const data = await response.json();
+      console.log(`Service response:`, data);
+
+      if (data.error) {
+        console.warn(`Service error:`, data.error);
+        return [];
+      }
+
+      if (!data.features || !Array.isArray(data.features)) {
+        console.warn(`No features found in response from ${serviceUrl}`);
+        return [];
+      }
+
+      console.log(`Found ${data.features.length} features from ${serviceUrl}`);
+      return data.features;
+
+    } catch (error) {
+      console.warn(`Error querying ${serviceUrl}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Query Historic England NHLE dataset for heritage assets within buffer
+   */
+  async queryHeritageAssets(centroidLat: number, centroidLng: number, bufferKm: number = 20): Promise<NHLERecord[]> {
+    try {
+      console.log(`Querying heritage assets for coordinates: ${centroidLat}, ${centroidLng} with ${bufferKm}km buffer`);
+
+      // Historic England ArcGIS service endpoints
+      const serviceEndpoints = [
+        // Listed Buildings
+        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Listed_Buildings/FeatureServer/0/query',
+        // Scheduled Monuments  
+        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Scheduled_Monuments/FeatureServer/0/query',
+        // Registered Parks and Gardens
+        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Registered_Parks_and_Gardens/FeatureServer/0/query',
+        // Protected Wrecks
+        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Protected_Wrecks/FeatureServer/0/query',
+        // Registered Battlefields
+        'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Registered_Battlefields/FeatureServer/0/query'
       ];
 
       const allRecords: NHLERecord[] = [];
 
-      for (const endpoint of endpoints) {
+      // Query each service endpoint
+      for (const endpoint of serviceEndpoints) {
         try {
-          const response = await fetch(`${this.baseUrl}/${endpoint}?${params}`);
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.features && Array.isArray(data.features)) {
-              allRecords.push(...data.features);
-            }
-          }
+          const records = await this.queryArcGISService(endpoint, centroidLat, centroidLng, bufferKm);
+          allRecords.push(...records);
         } catch (error) {
-          console.warn(`Failed to query ${endpoint}:`, error);
+          console.warn(`Failed to query endpoint ${endpoint}:`, error);
           // Continue with other endpoints
         }
       }
 
+      console.log(`Total records retrieved: ${allRecords.length}`);
+
       // Filter records within actual circular buffer and add distance
       const filteredRecords = allRecords.filter(record => {
-        if (!record.geometry || !record.geometry.x || !record.geometry.y) {
+        // Try different geometry field names
+        const geometry = record.geometry;
+        let x, y;
+
+        if (geometry && geometry.x && geometry.y) {
+          x = geometry.x;
+          y = geometry.y;
+        } else if (record.attributes.POINT_X && record.attributes.POINT_Y) {
+          x = record.attributes.POINT_X;
+          y = record.attributes.POINT_Y;
+        } else if (record.attributes.Easting && record.attributes.Northing) {
+          x = record.attributes.Easting;
+          y = record.attributes.Northing;
+        } else {
+          console.warn('No valid coordinates found for record:', record);
           return false;
         }
 
-        // Convert record coordinates to WGS84
-        const { lat, lng } = this.bngToWgs84(record.geometry.x, record.geometry.y);
-        const distance = this.calculateDistance(centroidLat, centroidLng, lat, lng);
-        
-        // Add calculated distance to record
-        (record as any).calculatedDistance = distance;
-        (record as any).wgs84Coordinates = { lat, lng };
+        try {
+          // Convert record coordinates to WGS84
+          const { lat, lng } = this.bngToWgs84(x, y);
+          const distance = this.calculateDistance(centroidLat, centroidLng, lat, lng);
+          
+          // Add calculated distance and coordinates to record
+          (record as any).calculatedDistance = distance;
+          (record as any).wgs84Coordinates = { lat, lng };
 
-        return distance <= bufferKm;
+          return distance <= bufferKm;
+        } catch (error) {
+          console.warn('Error processing coordinates for record:', record, error);
+          return false;
+        }
       });
 
+      console.log(`Filtered records within ${bufferKm}km: ${filteredRecords.length}`);
       return filteredRecords;
 
     } catch (error) {
@@ -191,29 +259,51 @@ export class HistoricEnglandService {
       const distance = (record as any).calculatedDistance || 0;
       const coords = (record as any).wgs84Coordinates || { lat: 0, lng: 0 };
 
-      // Determine site type based on heritage category
+      // Determine site type based on heritage category or service
       let type = 'archaeological_site';
-      if (attrs.HeritageCategory?.toLowerCase().includes('scheduled')) {
+      const category = attrs.HeritageCategory?.toLowerCase() || '';
+      
+      if (category.includes('scheduled') || attrs.ScheduledMonumentNumber) {
         type = 'scheduled_monument';
       } else if (attrs.Grade) {
         type = 'listed_building';
-      } else if (attrs.HeritageCategory?.toLowerCase().includes('park')) {
+      } else if (category.includes('park') || category.includes('garden')) {
         type = 'conservation_area';
+      } else if (category.includes('wreck')) {
+        type = 'archaeological_site';
+      } else if (category.includes('battlefield')) {
+        type = 'archaeological_site';
       }
 
       // Determine significance based on grade/designation
       let significance = 'local';
-      if (attrs.Grade === 'I' || attrs.HeritageCategory?.toLowerCase().includes('scheduled')) {
+      if (attrs.Grade === 'I' || attrs.Grade === '1' || category.includes('scheduled')) {
         significance = 'national';
-      } else if (attrs.Grade === 'II*') {
+      } else if (attrs.Grade === 'II*' || attrs.Grade === '2*') {
         significance = 'regional';
+      } else if (attrs.Grade === 'II' || attrs.Grade === '2') {
+        significance = 'local';
+      } else if (category.includes('international')) {
+        significance = 'international';
       }
 
       // Extract period information
-      const period = attrs.PeriodFrom || this.extractPeriodFromDescription(attrs.CuratedDescription || attrs.Name || '') || 'Unknown';
+      const period = attrs.PeriodFrom || 
+                    this.extractPeriodFromDescription(attrs.CuratedDescription || attrs.Name || '') || 
+                    'Unknown';
+
+      // Create designation string
+      let designation = 'Heritage Asset';
+      if (attrs.Grade) {
+        designation = `Grade ${attrs.Grade} Listed Building`;
+      } else if (attrs.ScheduledMonumentNumber) {
+        designation = 'Scheduled Monument';
+      } else if (attrs.HeritageCategory) {
+        designation = attrs.HeritageCategory;
+      }
 
       return {
-        id: `nhle_${attrs.ListEntry || index}`,
+        id: `nhle_${attrs.ListEntry || attrs.OBJECTID || index}`,
         name: attrs.Name || 'Unnamed Heritage Asset',
         period: period,
         coordinates: [coords.lat, coords.lng] as [number, number],
@@ -221,7 +311,7 @@ export class HistoricEnglandService {
         significance: significance,
         distance: distance,
         description: attrs.CuratedDescription || attrs.Location || 'Historic England listed heritage asset',
-        designation: attrs.Grade ? `Grade ${attrs.Grade} Listed Building` : attrs.HeritageCategory || 'Heritage Asset',
+        designation: designation,
         reference: attrs.ListEntry ? `NHLE ${attrs.ListEntry}` : undefined,
         condition: 'unknown' as const,
         threat: distance < 1 ? 'high' : distance < 5 ? 'medium' : 'low' as const,
